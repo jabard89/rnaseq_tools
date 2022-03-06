@@ -1,0 +1,35 @@
+Setup for running rnaseq platform on midway
+1. Setting up github
+https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+ssh-keygen -t ed25519 -C "your_email@example.com"
+open ~/.bashrc, add the following at the end (https://unix.stackexchange.com/questions/90853/how-can-i-run-ssh-add-automatically-without-a-password-prompt)
+if [ -z "$SSH_AUTH_SOCK" ] ; then
+  eval `ssh-agent -s`
+  ssh-add
+fi
+https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account
+
+2. create the environment
+from a clean login
+module load python/python-anaconda-2021.05
+conda create --prefix=~/.conda/envs/rna38 #create a new environment to install rnaseq software
+source activate ~/.conda/envs/rna38
+conda install -c conda-forge mamba
+mamba install -c conda-forge -c bioconda python=3.8 snakemake biopython scipy pandas htseq=1.99.2 star=2.7.10a samtools=1.11
+
+3. prep the annotation files
+download genome and annotation from ensembl: http://fungi.ensembl.org/Saccharomyces_cerevisiae/Info/Index
+genome: http://ftp.ensemblgenomes.org/pub/fungi/release-52/fasta/saccharomyces_cerevisiae/dna/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa.gz
+annotation: http://ftp.ensemblgenomes.org/pub/fungi/release-52/gff3/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.52.gff3.gz
+download pombe genome and annotation
+use rename_chrom_GFF.py to rename the pombe chromosomes in the annotation file
+manually rename the chromosomes to match in the fasta file
+copy and paste genomes and annotations into a merged file
+also grab Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf, which was created by add_UTR_GFF.py src/Saccharomyces_cerevisiae.R64-1-1.104.gff3 src/Scerevisiae/ScerYPDconsensusClusters.txt src/SGD_all_ORFs_3prime_UTRs.fsa output/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf
+
+4. snakemake
+trick: snakemake --allowed-rules c
+
+
+
+
