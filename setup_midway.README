@@ -11,11 +11,12 @@ https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a
 
 2. create the environment
 from a clean login
-module load python/python-anaconda-2021.05
-conda create --prefix=~/.conda/envs/rna38 #create a new environment to install rnaseq software
+module load python
+module load samtools
+conda create --prefix=/home/jbard/beagle3-dadrummond/jbard/envs/rna38 #create a new environment to install rnaseq software
 source activate ~/.conda/envs/rna38
 conda install -c conda-forge mamba
-mamba install -c conda-forge -c bioconda python=3.8 snakemake biopython scipy pandas htseq=1.99.2 star=2.7.10a samtools=1.11
+mamba install -c conda-forge -c bioconda python=3.8 spyder snakemake biopython scipy pandas htseq=1.99.2 star=2.7.10a
 
 3. prep the annotation files
 download genome and annotation from ensembl: http://fungi.ensembl.org/Saccharomyces_cerevisiae/Info/Index

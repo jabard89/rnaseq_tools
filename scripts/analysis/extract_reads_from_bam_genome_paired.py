@@ -18,14 +18,14 @@ if __name__=='__main__':
 	# Required arguments
 	parser.add_argument(dest="in_gtf",default=None,help="input gtf file")
 	parser.add_argument(dest="in_bam", default=None, help="input bam file")
-	parser.add_argument(dest="out_dist",default=None,help="name of the gene distribution output tsv.gz")
+	parser.add_argument(dest="out_dist",default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",default=None,help="name of the gene count output tsv")
 	# Optional arguments
-	args = parser.parse_args()
-	# args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/Analysis/src/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
-	# 						"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/STAR/output_220303/JB30/211216_STAR_JB30_Aligned.sortedByName.out.bam",
-	# 						"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/Analysis/output/220303_STAR/211216_STAR_JB30_dist.tsv.gz",
-	# 						"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/Analysis/output/220303_STAR/211216_STAR_JB30_counts.tsv"])
+# 	args = parser.parse_args()
+	args = parser.parse_args(["/home/jbard/beagle3-dadrummond/jbard/211216/snake/src/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
+							"/home/jbard/beagle3-dadrummond/jbard/211216/snake/mapped_reads/JB049/211216_STAR_JB049_Aligned.out.bam",
+							"/home/jbard/beagle3-dadrummond/jbard/211216/snake/counts/JB049/211216_STAR_JB049_dist_test.tsv",
+							"/home/jbard/beagle3-dadrummond/jbard/211216/snake/counts/JB049/211216_STAR_JB049_counts_test.tsv"])
 
 	# Read input
 	if not os.path.isfile(args.in_gtf):
@@ -152,7 +152,8 @@ if __name__=='__main__':
 		transcript_pos = [l for part in transcript_parts for l in list(part)] #turn the ranges into a continuous vector of positions
 		CDS_len = sum([len(part) for part in transcript_parts[1:-1]]) #calculate the length of the CDS
 		transcript_index = list(range(0-len(transcript_parts[0]),CDS_len+len(transcript_parts[-1])))
-		dist[gene] = {'index':transcript_index,'Count':dict.fromkeys(transcript_pos,0)}
+		region_vector = ['UTR5']*len(transcript_parts[0]) + ['CDS']*CDS_len + ['UTR3']*len(transcript_parts[-1])
+		dist[gene] = {'index':transcript_index,'Count':dict.fromkeys(transcript_pos,0),'region':region_vector}
 		
 	# algorithm partially based on htseq documentation
 	# https://htseq.readthedocs.io/en/master/counting.html?highlight=paired-end#handling-paired-end-reads
@@ -222,6 +223,7 @@ if __name__=='__main__':
 		df = pd.DataFrame.from_dict(dist[gene]['Count'],orient='index',columns=['Count'])
 		#df['Pos'] = df.index can include position if wanted
 		df['index'] = dist[gene]['index']
+		df['Region'] = dist[gene]['region']
 		df.set_index('index',drop=True,inplace=True)
 		df = df[df.Count != 0]
 		df['ORF'] = gene
