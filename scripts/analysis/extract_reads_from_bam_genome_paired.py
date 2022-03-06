@@ -21,11 +21,11 @@ if __name__=='__main__':
 	parser.add_argument(dest="out_dist",default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",default=None,help="name of the gene count output tsv")
 	# Optional arguments
-# 	args = parser.parse_args()
-	args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
-							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_Aligned.out.bam",
-							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_dist_test.tsv",
-							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_counts_test.tsv"])
+	args = parser.parse_args()
+#	args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
+#							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_Aligned.out.bam",
+#							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_dist_test.tsv",
+#							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_counts_test.tsv"])
 
 	# Read input
 	if not os.path.isfile(args.in_gtf):
