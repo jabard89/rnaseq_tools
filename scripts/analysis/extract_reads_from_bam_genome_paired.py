@@ -22,10 +22,10 @@ if __name__=='__main__':
 	parser.add_argument(dest="out_counts",default=None,help="name of the gene count output tsv")
 	# Optional arguments
 # 	args = parser.parse_args()
-	args = parser.parse_args(["/home/jbard/beagle3-dadrummond/jbard/211216/snake/src/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
-							"/home/jbard/beagle3-dadrummond/jbard/211216/snake/mapped_reads/JB049/211216_STAR_JB049_Aligned.out.bam",
-							"/home/jbard/beagle3-dadrummond/jbard/211216/snake/counts/JB049/211216_STAR_JB049_dist_test.tsv",
-							"/home/jbard/beagle3-dadrummond/jbard/211216/snake/counts/JB049/211216_STAR_JB049_counts_test.tsv"])
+	args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
+							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_Aligned.out.bam",
+							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_dist_test.tsv",
+							"/home/jabard89/Dropbox/code_JB/repos/Polysome_seq/big/output_220303/JB049/211216_STAR_JB049_counts_test.tsv"])
 
 	# Read input
 	if not os.path.isfile(args.in_gtf):
@@ -171,26 +171,30 @@ if __name__=='__main__':
 
 	counter = 0
 	print("Counting reads:")
+	# read 1 is from the opposite strand!!!
 	for bundle in HTSeq.pair_SAM_alignments( bam, bundle=True ):
 		counter += 1
 		if counter % 100000 == 0:
 			print(counter)
 		if len(bundle) != 1:
 			continue  # Skip multiple alignments
-		first_almnt, second_almnt = bundle[0]  # extract pair
-		if not first_almnt.aligned and second_almnt.aligned:
+		second_almnt, first_almnt = bundle[0]  # extract pair
+		if not first_almnt.aligned or not second_almnt.aligned:
 			continue
-		iset = None # find the gene that is common to both reads
+		iset = set() # find the gene that is common to both reads
 		for iv, step_set in gene_array[first_almnt.iv].steps():
-			if iset is None:
+			if len(step_set) == 0:
+				continue
+			elif len(iset) == 0:
 				iset = step_set.copy()
 			else:
 				iset.intersection_update(step_set)
 		if len(iset) == 0: #move on if no genes found for the first read
 			continue
-		second_almnt.iv = invert_strand(second_almnt.iv) # second read is on the other strand!!
-		for iv, step_set in gene_array[second_almnt.iv].steps(): 
-			iset.intersection_update(step_set)
+		second_almnt.iv = invert_strand(second_almnt.iv) # other read is on the other strand!!
+		for iv, step_set in gene_array[second_almnt.iv].steps():
+			if len(step_set) > 0: 
+				iset.intersection_update(step_set)
 		if len(iset) != 1: # ignore ambiguous reads
 			continue
 		found_gene = list(iset)[0]
@@ -214,7 +218,13 @@ if __name__=='__main__':
 		else:
 			counts[found_gene]['other'] += 1
 			# assign the read to the correct position on the gene
-			dist[found_gene]['Count'][first_almnt.iv.start_d] += 1
+			read_pos = first_almnt.iv.start_d
+			if read_pos not in dist[found_gene]['Count']:
+				if first_almnt.iv.strand == "+":
+					read_pos = min(dist[found_gene]['Count'].keys())
+				else:
+					read_pos = max(dist[found_gene]['Count'].keys())
+			dist[found_gene]['Count'][read_pos] += 1
 	
 	print("Exporting counts!")
 	# reformat distribution counts
