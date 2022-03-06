@@ -1,5 +1,5 @@
 library(tidyverse)
-working.dir <- "F:/Dropbox (Drummond Lab)/code_JB/repos/Polysome_seq/big/output_220303/counts"
+working.dir <- "F:/Dropbox (Drummond Lab)/code_JB/repos/Polysome_seq/big/output_220303/counts/JB045"
 gene_labels <- read_tsv("F:/Dropbox (Drummond Lab)/code_JB/repos/Polysome_seq/Analysis/src/201014_labeled_genes_scer.txt") %>%
   mutate(length.CDS=length.prot*3)
 
