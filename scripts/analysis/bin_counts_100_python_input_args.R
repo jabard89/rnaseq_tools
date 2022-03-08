@@ -95,5 +95,4 @@ d_binned_byORF <- d_counts_binned %>%
     group_by(ORF,bin) %>%
         summarise(counts = sum(counts.norm,na.rm=T)) %>%
     left_join(tpms %>% rename("TPM.STAR" = "TPM") %>% select(ORF,TPM.STAR),by=c("ORF")) %>%
-    left_join(tpms.trim %>% select(ORF,TPM.trim),by=c("ORF")) %>%
-    write_tsv(paste0(working.dir,paste0("/",args[2],"bin100_",name,".tsv.gz")))
+    write_tsv(paste0(working.dir,"/",args[2],"bin100_",name,".tsv.gz"))
