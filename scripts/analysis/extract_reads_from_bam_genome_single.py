@@ -197,12 +197,11 @@ if __name__=='__main__':
 		# still possible to miss introns in the gaps between the reads, but the reads are long enough relative to the fragment sizes
 		# that this should be a relatively rare occurence
 		feature_set = set()
-		for almnt in (first_almnt,second_almnt):
-			for cigop in almnt.cigar:
-				if cigop.type != "M":
-					continue
-				for iv, val in gene_array_dict[found_gene][cigop.ref_iv].steps():
-					feature_set |= val
+		for cigop in read.cigar:
+			if cigop.type != "M":
+				continue
+			for iv, val in gene_array_dict[found_gene][cigop.ref_iv].steps():
+				feature_set |= val
 		if 'intron' in feature_set and len(feature_set) == 1:
 			counts[found_gene]['intron'] += 1
 		elif 'intron' in feature_set and 'CDS' in feature_set:
