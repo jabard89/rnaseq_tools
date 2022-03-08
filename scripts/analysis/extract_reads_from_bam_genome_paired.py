@@ -231,14 +231,12 @@ if __name__=='__main__':
 	dist_out = []
 	for gene in dist:
 		df = pd.DataFrame.from_dict(dist[gene]['Count'],orient='index',columns=['Count'])
-		#df['Pos'] = df.index can include position if wanted
-		df['index'] = dist[gene]['index']
+		df['Pos'] = dist[gene]['index']
 		df['Region'] = dist[gene]['region']
-		df.set_index('index',drop=True,inplace=True)
 		df = df[df.Count != 0]
 		df['ORF'] = gene
 		dist_out.append(df)
-	pd.concat(dist_out).to_csv(args.out_dist,sep='\t',mode='a')
+	pd.concat(dist_out).to_csv(args.out_dist,sep='\t',mode='a',index=False)
 	
 	counts_out = []
 	for gene in counts:

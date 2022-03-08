@@ -2,14 +2,13 @@ library(tidyverse)
 args <- commandArgs(trailingOnly = TRUE)
 file <- args[1]
 working.dir <- dirname(file)
-name <- str_extract(file,pattern="(?<=211216_STAR_).*(?=_dist\\.tsv)")
+name <- str_extract(file,pattern=paste0("(?<=",args[2],").*(?=",args[3],")"))
 gene_labels <- read_tsv("src/201014_labeled_genes_scer.txt") %>%
   mutate(length.CDS=length.prot*3)
 print(paste0("Analyzing: ",name))
 d_raw0 <- read_tsv(file,comment="#") %>%
     left_join(gene_labels %>% select(ORF,length.CDS),by="ORF") %>%
-    rename("Counts"="Count",
-           "Pos"="index") %>%
+    rename("Counts"="Count") %>%
     filter(!is.na(length.CDS))
 
 # find min and max
@@ -96,4 +95,5 @@ d_binned_byORF <- d_counts_binned %>%
     group_by(ORF,bin) %>%
         summarise(counts = sum(counts.norm,na.rm=T)) %>%
     left_join(tpms %>% rename("TPM.STAR" = "TPM") %>% select(ORF,TPM.STAR),by=c("ORF")) %>%
-    write_tsv(paste0(working.dir,"/211216_counts_bin100_",name,".tsv.gz"))
+    left_join(tpms.trim %>% select(ORF,TPM.trim),by=c("ORF")) %>%
+    write_tsv(paste0(working.dir,paste0("/",args[2],"bin100_",name,".tsv.gz")))
