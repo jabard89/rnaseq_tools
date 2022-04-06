@@ -4,9 +4,9 @@ library(tidyverse)
 #args[3]: sample_prefix (if no prefix, use "")
 #args[4]: sample_suffix (e.g. .tsv.gz)
 args <- commandArgs(trailingOnly = TRUE)
-# args <- c("src/annotations/201014_labeled_genes_scer.txt",
-#           "F:/Dropbox (Drummond Lab)/Data_JB/RNA-seq/JB/220301/star/HG53/220403_STAR_HG53_pile_test.tsv.gz",
-#           "220403_STAR_","_pile_test.tsv.gz")
+args <- c("src/annotations/201014_labeled_genes_scer.txt",
+          "F:/Dropbox (Drummond Lab)/Data_JB/RNA-seq/JB/220301/star/HG53/220403_STAR_HG53_pile.tsv.gz",
+          "220403_STAR_","_pile.tsv.gz")
 for (f in args[1:2]) {
   if (!file.exists(f)) {
     stop("file does not exists. Correct usage is bin_pile_100_python_input_args.R gene_labels pile_file sample_prefix sample_suffix")
@@ -31,6 +31,7 @@ d_raw0 <- read_tsv(file,comment="#") %>%
     left_join(gene_labels %>% select(ORF,length.CDS),by="ORF") %>%
     rename("Counts"="Count")
 # find min and max
+d_raw0 <- d_raw0 %>% filter(ORF=="YBR072W")
 d_length <- d_raw0 %>% select(Pos,ORF,length.CDS) %>%
     group_by(ORF,length.CDS) %>% nest %>% ungroup %>%
     mutate(end = map_dbl(data,function(df){max(df$Pos)})) %>%
@@ -58,32 +59,6 @@ bin_orf <- function(df,N,vector) {
     df %>% left_join(bin_df,by="start_aligned")
 }
 
-bin_df <- function(df,bin) {
-  print(bin)
-    if (bin=="UTR5") {
-      df %>% group_by(ORF,start,end,length.CDS) %>%
-        nest %>%
-        mutate(data=map(data,bin_orf,10,seq(start,-1))) %>%
-        unnest(data) %>%
-        mutate(bin_vector = bin_vector-11) %>%
-        ungroup() %>% return
-    } else if (bin=="ORF") {
-      df %>% group_by(ORF,start,end,length.CDS) %>%
-        nest %>%
-        mutate(data=map(data,bin_orf,100,seq(0,length.CDS-1))) %>%
-        unnest(data) %>%
-        mutate(bin_vector = bin_vector-1) %>%
-        ungroup() %>% return
-    } else if (bin=="UTR3") {
-      df %>% group_by(ORF,start,end,length.CDS) %>%
-        nest %>%
-        mutate(data=map(data,bin_orf,10,seq(length.CDS,end))) %>%
-        unnest(data) %>%
-        mutate(bin_vector = bin_vector+99) %>%
-        ungroup() %>% return
-    } else {return(NULL)}
-}
-
 d_counts_binned <- d_normcounts %>%
     left_join(d_length,by="ORF") %>%
     group_by(ORF,length.CDS) %>%
@@ -97,5 +72,9 @@ d_counts_binned <- d_normcounts %>%
 print("Writing")
 d_binned_byORF <- d_counts_binned %>%
     group_by(ORF,bin) %>%
-        summarise(counts = sum(counts.norm,na.rm=T))%>%
+        summarise(counts = sum(counts.norm,na.rm=T))#%>%
     write_tsv(paste0(working.dir,paste0("/",args[3],"bin100_",name,".tsv.gz")))
+
+ggplot(d_counts_binned,aes(x=start_aligned,y=counts.norm))+geom_point()    
+ggplot(d_binned_byORF,aes(x=bin,y=counts))+geom_point()
+
