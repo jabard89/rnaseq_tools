@@ -27,7 +27,7 @@ print(args)
 if (is.na(name)) {
   stop("Name not extracted properly")
 }
-gene_labels <- read_tsv(args[1]) %>%
+gene_labels <- read_tsv(args[1],comment="#") %>%
   mutate(length.CDS=length.prot*3)
 print(paste0("Analyzing: ",name))
 d_raw0 <- read_tsv(file,comment="#") %>%
