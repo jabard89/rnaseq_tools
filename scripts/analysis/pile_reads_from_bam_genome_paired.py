@@ -173,7 +173,7 @@ if __name__=='__main__':
 		CDS_len = sum([len(part) for part in transcript_parts[1:-1]]) #calculate the length of the CDS
 		transcript_index = list(range(0-len(transcript_parts[0]),CDS_len+len(transcript_parts[-1])))
 		region_vector = ['UTR5']*len(transcript_parts[0]) + ['CDS']*CDS_len + ['UTR3']*len(transcript_parts[-1])
-		dist[gene] = {'index':transcript_index,'Count':dict.fromkeys(transcript_pos,0),'region':region_vector}
+		dist[gene] = {'index':transcript_index,'Count':dict.fromkeys(transcript_pos,0),'region':region_vector,'CDS_len':CDS_len}
 		
 	# algorithm partially based on htseq documentation
 	# https://htseq.readthedocs.io/en/master/counting.html?highlight=paired-end#handling-paired-end-reads
@@ -240,7 +240,8 @@ if __name__=='__main__':
 		elif 'intron' in feature_set and 'CDS' in feature_set:
 			counts[found_gene]['unspliced'] += 1
 		else:
-			counts[found_gene]['other'] += 1
+			if 'CDS' in feature_set:
+				counts[found_gene]['other'] += 1
 			# assign the read to the correct position on the gene
 			# construct a new interval that spans the whole read (from first base of alnmt1 to last base of almnt 2)
 			# add 1 to every position within that interval
@@ -287,11 +288,12 @@ if __name__=='__main__':
 	counts_out = []
 	for gene in counts:
 		df = pd.DataFrame(counts[gene],index=[gene])
-		df['length_trans']=len(dist[gene]['index'])
+		#df['length_trans']=len(dist[gene]['index'])
+		df['CDS_length']=dist[gene]['CDS_len']
 		df['ORF'] = df.index
 		counts_out.append(df)
 	counts_df = pd.concat(counts_out)
-	counts_df['RPK'] = counts_df['other'] / (counts_df['length_trans']/1000)
+	counts_df['RPK'] = counts_df['other'] / (counts_df['CDS_length']/1000)
 	totalRPK = counts_df['RPK'].sum()
 	counts_df['TPM'] = counts_df['RPK']*1e6/totalRPK
 	counts_df.drop('RPK',axis=1).to_csv(counts_uncompressed,sep='\t',index=False,mode='a')
