@@ -62,32 +62,6 @@ bin_orf <- function(df,N,vector) {
     df %>% left_join(bin_df,by="start_aligned")
 }
 
-bin_df <- function(df,bin) {
-  print(bin)
-    if (bin=="UTR5") {
-      df %>% group_by(ORF,start,end,length.CDS) %>%
-        nest %>%
-        mutate(data=map(data,bin_orf,10,seq(start,-1))) %>%
-        unnest(data) %>%
-        mutate(bin_vector = bin_vector-11) %>%
-        ungroup() %>% return
-    } else if (bin=="ORF") {
-      df %>% group_by(ORF,start,end,length.CDS) %>%
-        nest %>%
-        mutate(data=map(data,bin_orf,100,seq(0,length.CDS-1))) %>%
-        unnest(data) %>%
-        mutate(bin_vector = bin_vector-1) %>%
-        ungroup() %>% return
-    } else if (bin=="UTR3") {
-      df %>% group_by(ORF,start,end,length.CDS) %>%
-        nest %>%
-        mutate(data=map(data,bin_orf,10,seq(length.CDS,end))) %>%
-        unnest(data) %>%
-        mutate(bin_vector = bin_vector+99) %>%
-        ungroup() %>% return
-    } else {return(NULL)}
-}
-
 d_counts_binned <- d_normcounts %>%
     left_join(d_length,by="ORF") %>%
     group_by(ORF,length.CDS) %>%
@@ -98,8 +72,14 @@ d_counts_binned <- d_normcounts %>%
     mutate(bin = bin_vector) %>%
     select(-bin_vector)
 
+d_bins <- unique(d_counts_binned$ORF) %>% map(function(temp_ORF){
+  tibble("ORF"=temp_ORF,bin=seq(0,99))
+}) %>% bind_rows
+
 print("Writing")
 d_binned_byORF <- d_counts_binned %>%
     group_by(ORF,bin) %>%
-        summarise(counts = sum(counts.norm,na.rm=T))%>%
+    summarise(counts = sum(counts.norm,na.rm=T)) %>%
+    full_join(d_bins,by=c("ORF","bin")) %>%
+    replace_na(list(counts=0)) %>%
     write_tsv(paste0(working.dir,paste0("/",args[3],"bin100_",name,".tsv.gz")))
