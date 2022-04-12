@@ -1,0 +1,24 @@
+###
+Nanoluc	spike	chromosome	1	523	.	.	.	ID "chromosome:Nanoluc"
+###
+Nanoluc	spike	gene	1	523	.	+	.	ID "gene:Nanoluc"; biotype "protein_coding"; description ""; gene_id "Nanoluc";
+Nanoluc	spike	mRNA	1	523	.	+	.	ID "transcript:Nanoluc_mRNA"; Parent "gene:Nanoluc"; biotype "protein_coding"; transcript_id "Nanoluc_mRNA"; description ""
+Nanoluc	spike	exon	1	523	.	+	.	Parent "transcript:Nanoluc_mRNA"; Name "Nanoluc-E1"; exon_id "Nanoluc-E1"; rank "1"; description ""
+Nanoluc	spike	CDS	1	523	.	+	.	ID "CDS:Nanoluc"; Parent "transcript:Nanoluc_mRNA"; protein_id "Nanoluc"; description ""
+###
+Clover	spike	chromosome	1	1455	.	.	.	ID "chromosome:Clover"
+###
+Clover	spike	gene	1	1455	.	+	.	ID "gene:Clover"; biotype "protein_coding"; description ""; gene_id "Clover";
+Clover	spike	mRNA	1	1455	.	+	.	ID "transcript:Clover_mRNA"; Parent "gene:Clover"; biotype "protein_coding"; transcript_id "Clover_mRNA"; description ""
+Clover	spike	exon	1	1455	.	+	.	Parent "transcript:Clover_mRNA"; Name "Clover-E1"; exon_id "Clover-E1"; rank "1"; description ""
+Clover	spike	5UTR	1	78	.	+	.	ID "5UTR:Clover"; Parent "transcript:Clover_mRNA"; protein_id "Clover"
+Clover	spike	CDS	79	1455	.	+	.	ID "CDS:Clover"; Parent "transcript:Clover_mRNA"; protein_id "Clover"; description ""
+###
+mCherry	spike	chromosome	1	747	.	.	.	ID "chromosome:mCherry"
+###
+mCherry	spike	gene	1	747	.	+	.	ID "gene:mCherry"; biotype "protein_coding"; description ""; gene_id "mCherry";
+mCherry	spike	mRNA	1	747	.	+	.	ID "transcript:mCherry_mRNA"; Parent "gene:mCherry"; biotype "protein_coding"; transcript_id "mCherry_mRNA"; description ""
+mCherry	spike	exon	1	747	.	+	.	Parent "transcript:mCherry_mRNA"; Name "mCherry-E1"; exon_id "mCherry-E1"; rank "1"; description ""
+mCherry	spike	5UTR	1	30	.	+	.	ID "5UTR:mCherry"; Parent "transcript:mCherry_mRNA"; protein_id "mCherry"
+mCherry	spike	CDS	31	747	.	+	.	ID "CDS:mCherry"; Parent "transcript:mCherry_mRNA"; protein_id "mCherry"; description ""
+###
