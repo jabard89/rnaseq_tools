@@ -121,7 +121,7 @@ if __name__=='__main__':
 	counts = {}
 	dist = {}
 	for gene in gene_ivs:
-		counts[gene] = {'intron':0,'unspliced':0,'other':0}
+		counts[gene] = {'intron':0,'unspliced':0,'spliced':0,'other':0}
 		gene_array[gene_ivs[gene]] += gene
 		gene_array_dict[gene] = HTSeq.GenomicArrayOfSets("auto",stranded=True)
 		for feature in gene_dict[gene]:
@@ -233,10 +233,15 @@ if __name__=='__main__':
 		# still possible to miss introns in the gaps between the reads, but the reads are long enough relative to the fragment sizes
 		# that this should be a relatively rare occurence
 		feature_set = set()
+		splice_flag = False
 		for almnt in (first_almnt,second_almnt):
 			for cigop in almnt.cigar:
 				if cigop.type != "M":
-					continue
+					if cigop.type == "N":
+						splice_flag = True
+						continue
+					else:
+						continue
 				if args.invert_strands:
 					cigop.ref_iv = invert_strand(cigop.ref_iv)
 				for iv, val in gene_array_dict[found_gene][cigop.ref_iv].steps():
@@ -247,7 +252,10 @@ if __name__=='__main__':
 			counts[found_gene]['unspliced'] += 1
 		else:
 			if 'CDS' in feature_set:
-				counts[found_gene]['other'] += 1
+				if splice_flag:
+					counts[found_gene]['spliced'] += 1
+				else:
+					counts[found_gene]['other'] += 1
 			# assign the read to the correct position on the gene
 			# construct a new interval that spans the whole read (from first base of alnmt1 to last base of almnt 2)
 			# add 1 to every position within that interval
@@ -299,7 +307,7 @@ if __name__=='__main__':
 		df['ORF'] = df.index
 		counts_out.append(df)
 	counts_df = pd.concat(counts_out)
-	counts_df['RPK'] = counts_df['other'] / (counts_df['CDS_length']/1000)
+	counts_df['RPK'] = (counts_df['spliced']+counts_df['other']) / (counts_df['CDS_length']/1000)
 	totalRPK = counts_df['RPK'].sum()
 	counts_df['TPM'] = counts_df['RPK']*1e6/totalRPK
 	counts_df.drop('RPK',axis=1).to_csv(counts_uncompressed,sep='\t',index=False,mode='a')
