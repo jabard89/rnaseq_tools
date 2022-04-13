@@ -19,6 +19,7 @@ if __name__=='__main__':
 	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None, help="input bam file")
 	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
+	parser.add_argument(dest="--invert_strands",action="store_true",help="invert the strands when looking for matches")
 	# Optional arguments
 	args = parser.parse_args()
 	# args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
@@ -205,6 +206,9 @@ if __name__=='__main__':
 			continue
 		if not first_almnt.aligned or not second_almnt.aligned:
 			continue
+		if args.invert_strands:
+			first_almnt.iv = invert_strand(first_almnt.iv)
+			second_almnt.iv = invert_strand(second_almnt.iv)
 		iset = set() # find the gene that is common to both reads
 		for iv, step_set in gene_array[first_almnt.iv].steps():
 			if len(step_set) == 0:

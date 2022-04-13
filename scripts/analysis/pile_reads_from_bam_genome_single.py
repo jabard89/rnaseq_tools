@@ -15,10 +15,11 @@ import HTSeq
 if __name__=='__main__':
 	parser = argparse.ArgumentParser(description="Generic script template")
 	# Required arguments
-	parser.add_argument(dest="in_gtf",type=pathlib.Path,default=None,help="input gtf file")
-	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None, help="input bam file")
-	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,help="name of the gene distribution output tsv")
-	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
+	parser.add_argument(dest="in_gtf",type=pathlib.Path,default=None,required=True,help="input gtf file")
+	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None,required=True,help="input bam file")
+	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,required=True,help="name of the gene distribution output tsv")
+	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,required=True,help="name of the gene count output tsv")
+	parser.add_argument(dest="--invert_strands",action="store_true",help="invert the strands when looking for matches")
 	# Optional arguments
 	args = parser.parse_args()
 	# args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
@@ -199,6 +200,8 @@ if __name__=='__main__':
 			print(counter)
 		if not read.aligned:
 			continue
+		if args.invert_strands:
+			read.iv = invert_strand(read.iv)
 		iset = set() # find the gene that is common to both reads
 		for iv, step_set in gene_array[read.iv].steps():
 			if len(step_set) == 0:
