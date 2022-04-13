@@ -223,6 +223,8 @@ if __name__=='__main__':
 		for cigop in read.cigar:
 			if cigop.type != "M":
 				continue
+			if args.invert_strands:
+				cigop.ref_iv = invert_strand(cigop.ref_iv)
 			for iv, val in gene_array_dict[found_gene][cigop.ref_iv].steps():
 				feature_set |= val
 		if 'intron' in feature_set and len(feature_set) == 1:

@@ -15,9 +15,9 @@ import HTSeq
 if __name__=='__main__':
 	parser = argparse.ArgumentParser(description="Generic script template")
 	# Required arguments
-	parser.add_argument('-i','--invert_strands',action="store_true",help="invert the strands when looking for matches")
+	parser.add_argument('-i',"--invert_strands",action="store_true",help="invert the strands when looking for matches")
 	parser.add_argument(dest="in_gtf",type=pathlib.Path,default=None,help="input gtf file")
-	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None, help="input bam file")
+	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None,help="input bam file")
 	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
 	# Optional arguments
@@ -194,35 +194,26 @@ if __name__=='__main__':
 	warn_sort_flag = False
 	print("Counting reads:")
 	# read 1 is from the opposite strand!!!
-	for bundle in HTSeq.pair_SAM_alignments( bam, bundle=True ):
+	for read in bam:
 		counter += 1
-		if counter % 100000 == 0:
+		if counter % 10 == 0:
 			print(counter)
-		if len(bundle) != 1:
-			continue  # Skip multiple alignments
-		second_almnt, first_almnt = bundle[0]  # extract pair, NEBnext puts directional strand on the second read
-		if not first_almnt or not second_almnt:
-			warn_sort_flag = True
-			continue
-		if not first_almnt.aligned or not second_almnt.aligned:
+			sys.exit("ending")
+		if not read.aligned:
 			continue
 		if args.invert_strands:
-			first_almnt.iv = invert_strand(first_almnt.iv)
-			second_almnt.iv = invert_strand(second_almnt.iv)
+			print(read)
+			read.iv = invert_strand(read.iv)
+			print(read)
 		iset = set() # find the gene that is common to both reads
-		for iv, step_set in gene_array[first_almnt.iv].steps():
+		for iv, step_set in gene_array[read.iv].steps():
 			if len(step_set) == 0:
 				continue
 			elif len(iset) == 0:
 				iset = step_set.copy()
 			else:
 				iset.intersection_update(step_set)
-		if len(iset) == 0: #move on if no genes found for the first read
-			continue
-		second_almnt.iv = invert_strand(second_almnt.iv) # other read is on the other strand!!
-		for iv, step_set in gene_array[second_almnt.iv].steps():
-			if len(step_set) > 0: 
-				iset.intersection_update(step_set)
+		print(iset)
 		if len(iset) != 1: # ignore ambiguous reads
 			continue
 		found_gene = list(iset)[0]
@@ -233,14 +224,13 @@ if __name__=='__main__':
 		# still possible to miss introns in the gaps between the reads, but the reads are long enough relative to the fragment sizes
 		# that this should be a relatively rare occurence
 		feature_set = set()
-		for almnt in (first_almnt,second_almnt):
-			for cigop in almnt.cigar:
-				if cigop.type != "M":
-					continue
-				if args.invert_strands:
-					cigop.ref_iv = invert_strand(cigop.ref_iv)
-				for iv, val in gene_array_dict[found_gene][cigop.ref_iv].steps():
-					feature_set |= val
+		for cigop in read.cigar:
+			if cigop.type != "M":
+				continue
+			if args.invert_strands:
+				cigop.ref_iv = invert_strand(cigop.ref_iv)
+			for iv, val in gene_array_dict[found_gene][cigop.ref_iv].steps():
+				feature_set |= val
 		if 'intron' in feature_set and len(feature_set) == 1:
 			counts[found_gene]['intron'] += 1
 		elif 'intron' in feature_set and 'CDS' in feature_set:
@@ -248,19 +238,20 @@ if __name__=='__main__':
 		else:
 			if 'CDS' in feature_set:
 				counts[found_gene]['other'] += 1
+				print(counts[found_gene])
 			# assign the read to the correct position on the gene
 			# construct a new interval that spans the whole read (from first base of alnmt1 to last base of almnt 2)
 			# add 1 to every position within that interval
-			range_start = first_almnt.iv.start_d
-			range_end = second_almnt.iv.end_d
+			range_start = read.iv.start_d
+			range_end = read.iv.end_d
 			# squish down reads to fit the confines of the gene vector
 			if range_start not in dist[found_gene]['Count']:
-				if first_almnt.iv.strand == "+":
+				if read.iv.strand == "+":
 					range_start = min(dist[found_gene]['Count'].keys())
 				else:
 					range_start = max(dist[found_gene]['Count'].keys())
 			if range_end not in dist[found_gene]['Count']:
-				if second_almnt.iv.strand == "+":
+				if read.iv.strand == "+":
 					range_end = max(dist[found_gene]['Count'].keys())
 				else:
 					range_end = min(dist[found_gene]['Count'].keys())
