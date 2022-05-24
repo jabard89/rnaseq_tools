@@ -1,0 +1,207 @@
+---
+title: "EJW Bayesian Mixture Model"
+author: "Jared Bard"
+date: "05/03/2022"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=FALSE, cache.path = "./cache/",
+                      echo = FALSE,message = FALSE, warning = FALSE)
+library(tidyverse)
+library(rstan)
+library(flextable)
+library(readxl)
+```
+
+```{r fit_functions}
+# based on EWJ and also Xuejia Ke, who made a demo R package: https://github.com/thebestecho/demo-RNAFracQuant
+# I rewrote Edward's functions to be flexible both for the number of columns to mix and the names of the input columns
+# see below for example usage
+make_stan_data <- function(ctdata,column_list) {
+  # make the data into the right format for stan
+  stan_dat <- list(NRNA=nrow(ctdata),
+               tot_obs=as.integer(round(ctdata$Total)))
+  for (col in column_list) {
+    t <- structure(list(as.integer(round(ctdata[[col]]))),
+                   names=list(paste0(col,"_obs")))
+    stan_dat <- append(stan_dat,t)
+  }
+  return(stan_dat)
+}
+
+make_stan_model <- function(column_list) {
+  model <- paste0(
+  '// -*- mode: C -*-
+  data {
+    // Number of RNAs
+    int<lower=1> NRNA;     
+    
+    // Note: These are all integers
+    // columns t, s, p
+    int<lower=0> tot_obs[NRNA];\n',
+  paste(paste0("\tint<lower=0> ",column_list,"_obs[NRNA];\n"),collapse=""),
+  '}
+  parameters {\n',
+  paste(paste0("\treal<lower=0> mixing_",column_list,";\n"),collapse=""),
+  '  
+    // dispersion parameter for counts
+    real<lower=0> phi;
+  }
+  model{
+    // mixing ratios\n',
+  paste(paste0("\tmixing_",column_list," ~gamma(1,1);\n"),collapse=""),
+  '
+    // Cauchy prior for negbin dispersion parameter
+    phi ~ cauchy(0,3);
+    
+    for(idx in 1:NRNA){ 
+      // count distn negative binomial with specified means
+      // Total
+      tot_obs[idx] ~ neg_binomial_2(\n',
+  paste("\t",paste0("mixing_",column_list[1:length(column_list)-1]," * ",
+         column_list[1:length(column_list)-1],"_obs[idx] + "),collapse=""),
+  paste0("mixing_",column_list[length(column_list)]," * ",
+         column_list[length(column_list)],"_obs[idx], phi);\n"),
+  ' }
+  
+  }')
+  return(model)
+}
+
+initialize_stan_mixing_model <- function(ctdata,column_list,model=NULL) {
+  # first generate the matrix for the specific columns to mix
+  stan_dat <- make_stan_data(ctdata,column_list)
+  
+  # now generate the text for the stan model from the columns
+  if (is.null(model)) {model <- make_stan_model(column_list)}
+  
+  #initialize the stan model
+  stan(model_code=model,data=stan_dat,chains = 1,iter = 100)
+}
+
+fit_mixing_model <- function(ctdata,column_list,n_iter=1000,n_chains=4,
+                             control=list(adapt_delta=0.85),
+                             stan_mixing=NULL,...) {
+    stan_dat <- make_stan_data(ctdata,column_list)
+    if (is.null(stan_mixing)) {
+        stan_mixing <- initialize_stan_mixing_model(ctdata,column_list)
+    }
+    stan_mixing_fit <- stan(fit = stan_mixing,data = stan_dat,
+                            iter = n_iter,chains = n_chains,...)
+    return(stan_mixing_fit %>% summary())
+}
+
+get_mixing_params <- function(item){
+  # extracts all the parameters from the stan model
+  t <- item$summary %>% data.frame
+  out <- tibble(Variable=rownames(item$summary),
+           mean=item$summary[,"mean"],
+           se_mean=item$summary[,"se_mean"],
+           sd=item$summary[,"sd"],
+           "x2.5" = item$summary[,"2.5%"],
+           x25 = item$summary[,"25%"],
+           x50 = item$summary[,"50%"],
+           x75 = item$summary[,"75%"],
+           "x97.5" = item$summary[,"97.5%"],
+           n_eff = item$summary[,"n_eff"],
+           Rhat = item$summary[,"Rhat"]) %>%
+    pivot_longer(cols=c(mean:Rhat),names_to="Term",values_to="Value")
+}
+```
+
+```{r load220301}
+parent.directory <- c("F:/Dropbox (Drummond Lab)/Data_JB/RNA-seq/JB/220301/")
+src.directory <- c("F:/Dropbox (Drummond Lab)/Data_JB/RNA-seq/JB/220301/kallisto/snake/kallisto_quant/")
+sample.names <- list.dirs(paste0(src.directory),full.names=F,recursive=F)
+sample.paths <- paste0(src.directory,sample.names,"/abundance.tsv")
+
+raw_data <- sample.paths %>% map2(sample.names,function(file,name) {
+  read_tsv(file,col_names = c("ORF","transcript.length","eff_length","est_counts","TPM"),
+           skip=1) %>%
+    mutate(Sample=name)
+}) %>% bind_rows
+d_raw <- raw_data %>%
+  left_join(read_excel(paste0(parent.directory,"/220301-samples.xlsx")),
+            by="Sample") %>%
+  unite("Sample",c(Treatment_group,Treat,Temperature),sep=".",remove=F)
+```
+
+```{r fitTSP}
+# runs analysis in parallel
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+# data should be filtered to remove noisy data (can later apply same parameters to the whole dataset)
+# Data should be wide format, (ORF,Sample,Total,Sup,Pellet). Fractions can have any names,
+# but one column must be "Total"
+# replace est_counts with whatever relative abundance count you have
+d_filt <- d_raw %>% filter(est_counts > 10) %>%
+  select(ORF,est_counts,Sample,Biorep,Fraction) %>%
+  pivot_wider(names_from="Fraction",values_from="est_counts") %>%
+  drop_na() #removes rows with missing values
+
+d_filt_cols <- c("Sup","Pellet") #specify the names of the mixing columns
+# compile stan model, test it with 10 iterations on just one sample, save output
+
+stan_mixing_mod <- initialize_stan_mixing_model(d_filt%>%filter(Sample=="Dextrose.FALSE.30C",
+                                                                Biorep=="BR1"),
+                                                d_filt_cols)
+
+# Specify a seed for random number generator so output is reproducible
+myseed = 40
+
+# run stan mixing ratio inference, reusing same model
+# this will take a little while to run (5 minutes to 1 hour)
+d_mixing_ratios <- d_filt %>%
+  group_by(Sample,Biorep) %>% nest %>%
+  mutate(data=map(data,function(df) {
+    mod <- fit_mixing_model(df,d_filt_cols,
+                            stan_mixing=stan_mixing_mod,seed=myseed)
+    get_mixing_params(mod)
+  })
+  ) %>% unnest(data)
+
+#write_tsv(d_mixing_ratios,"output/220328_mixing_ratios.tsv")
+
+# the main parameter to use is the x50 parameter, which is the median mixing ratio
+# it can be useful to see how wide the variance is from the parameters to check for convergence of the model
+
+fit_summary <- d_mixing_ratios %>%
+  filter(Term%in%c("mean","sd"),
+         Variable!="phi",Variable!="lp__") %>%
+  pivot_wider(names_from=Term,values_from=Value) %>%
+  mutate(percent_error = sd/mean*100)
+
+fit_summary %>% mutate(mean = formatC(mean,digits=2),
+                   sd = formatC(sd,digits=2),
+                   percent_error = formatC(percent_error,digits=2)) %>%
+  arrange(Sample,Biorep,Variable) %>%
+  flextable %>% autofit
+
+# create a clean tibble with just the median mixing ratios
+ratios_join <- d_mixing_ratios %>% filter(Term=="x50",Variable!="phi",Variable!="lp__") %>%
+  mutate(Fraction=str_extract(Variable,"(?<=mixing_).*")) %>%
+  rename("Mixing.ratio"="Value") %>%
+  select(Sample,Biorep,Fraction,Mixing.ratio)
+
+d_fit_long <- d_raw %>%
+  select(ORF,Sample,Biorep,Fraction,est_counts) %>%
+  left_join(ratios_join,by=c("Sample","Biorep","Fraction")) %>%
+  mutate(Mixing.ratio=if_else(Fraction=="Total",1,Mixing.ratio)) %>% # assigns a mixing ratio of 1 to the total
+  mutate(counts_adj = est_counts*Mixing.ratio)  # adjust the intensities by the mixing ratio
+
+d_fit_wide <- d_fit_long %>%
+  select(ORF,Sample,Biorep,Fraction,counts_adj) %>%
+  pivot_wider(names_from=Fraction,values_from=counts_adj,names_prefix="Counts.") %>%
+  mutate(mixSum=Counts.Sup+Counts.Pellet) %>%
+  mutate(pSup=Counts.Sup/mixSum,
+         pSup_odds = Counts.Sup/Counts.Pellet)
+
+# as a test, would be good to plot the "Total" vs the "mixSum" to see how well the adjusted counts add up to the measured totals
+ggplot(d_fit_wide,
+       aes(x=Counts.Total,y=mixSum))+
+  geom_point(alpha=0.2)+
+  scale_x_log10()+scale_y_log10()+
+  facet_grid(Biorep~Sample)
+```
+
