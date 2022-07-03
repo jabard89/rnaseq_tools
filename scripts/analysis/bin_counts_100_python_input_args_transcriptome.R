@@ -19,7 +19,7 @@ d_normcounts <- d_raw %>%
 bin_orf <- function(df,N,vector) {
     bin_vector <- as.integer(cut_interval(vector,n=N,labels=seq(1,N)))
     bin_df <- tibble("start_aligned"=vector,"bin_vector"=bin_vector)
-    df %>% left_join(bin_df,by="start_aligned")
+    df %>% full_join(bin_df,by="start_aligned")
 }
 
 bin_df <- function(df,bin) {
