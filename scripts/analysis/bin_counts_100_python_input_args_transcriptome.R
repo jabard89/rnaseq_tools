@@ -5,7 +5,7 @@ working.dir <- dirname(file)
 name <- args[2]
 print(paste0("Analyzing: ",file,"\n Exporting to: ",name,"_bin100.tsv.gz"))
 # python numbers are 0-indexed, assuming the transcriptome came with 250nt UTR
-d_raw <- read_tsv(file,comment="#",show_col_types = F) %>%
+d_raw <- read_tsv(file,comment="#") %>%
   mutate(Pos=Pos-250) %>%
   mutate(CDS_length = CDS_length-250-250)
 
