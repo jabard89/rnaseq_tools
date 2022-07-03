@@ -22,8 +22,8 @@ if __name__=='__main__':
 	parser.add_argument('-i',"--invert_strands",action="store_true",help="invert the strands when looking for matches")
 	parser.add_argument(dest="in_fasta",type=pathlib.Path,default=None,help="input fasta file used for mapping")
 	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None,help="input bam file")
-	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
+	parser.add_argument("-d","--out_dist",type=pathlib.Path,default=None,help="optional name of the gene distribution output tsv")
 	parser.add_argument("-f","--trim_front",dest="trim_front",default=200,type=int,help="nt to trim from front")
 	parser.add_argument("-b","--trim_back",dest="trim_back",default=30,type=int,help="nt to trim from back")
 	parser.add_argument("-m","--min_length",dest="min_length",default=100,type=int,help="minimum remaining nt")
@@ -44,37 +44,41 @@ if __name__=='__main__':
 	# check if either output is a compressed gz
 	dist_gzip_flag = False
 	counts_gzip_flag = False
-	dist_uncompressed = args.out_dist
-	dist_compressed = None
+	
 	counts_uncompressed = args.out_counts
 	counts_compressed = None
-	if args.out_dist.suffix == ".gz":
-		dist_gzip_flag = True
-		dist_uncompressed = args.out_dist.parent / args.out_dist.stem
-		dist_compressed = args.out_dist
 	if args.out_counts.suffix == ".gz":
 		counts_gzip_flag = True
 		counts_uncompressed = args.out_counts.parent / args.out_counts.stem
 		counts_compressed = args.out_counts
-
-	for file in [dist_uncompressed,dist_compressed,counts_uncompressed,counts_compressed]:
+	for file in [counts_uncompressed,counts_compressed]:
 		if file and os.path.isfile(file):
 			raise IOError("# Error: file {} already exists, please remove it".format(file))
-		
-	with open(dist_uncompressed,'w') as f:
-		f.write("# Run started {}\n".format(datetime.now()))
-		f.write("# Command: {}\n".format(' '.join(sys.argv)))
-		f.write("# Parameters:\n")
-		optdict = vars(args)
-		for (k,v) in optdict.items():
-			f.write("#\t{k}: {v}\n".format(k=k,v=v))
 	with open(counts_uncompressed,'w') as f:
 		f.write("# Run started {}\n".format(datetime.now()))
 		f.write("# Command: {}\n".format(' '.join(sys.argv)))
 		f.write("# Parameters:\n")
 		optdict = vars(args)
 		for (k,v) in optdict.items():
-			f.write("#\t{k}: {v}\n".format(k=k,v=v))	
+			f.write("#\t{k}: {v}\n".format(k=k,v=v))
+
+	if args.out_dist:
+		dist_uncompressed = args.out_dist
+		dist_compressed = None
+		if args.out_dist.suffix == ".gz":
+			dist_gzip_flag = True
+			dist_uncompressed = args.out_dist.parent / args.out_dist.stem
+			dist_compressed = args.out_dist
+		for file in [dist_uncompressed,dist_compressed]:
+			if file and os.path.isfile(file):
+				raise IOError("# Error: file {} already exists, please remove it".format(file))		
+		with open(dist_uncompressed,'w') as f:
+			f.write("# Run started {}\n".format(datetime.now()))
+			f.write("# Command: {}\n".format(' '.join(sys.argv)))
+			f.write("# Parameters:\n")
+			optdict = vars(args)
+			for (k,v) in optdict.items():
+				f.write("#\t{k}: {v}\n".format(k=k,v=v))
 
 	bam = HTSeq.BAM_Reader(str(args.in_bam))
 	input_fasta=list(SeqIO.parse(args.in_fasta,format='fasta'))
@@ -112,19 +116,20 @@ if __name__=='__main__':
 		
 	print("Exporting counts!")
 	# reformat distribution counts
-	dist_out = []
-	for gene in dist:
-		df = pd.DataFrame.from_dict(dist[gene]['Count'],orient='index',columns=['Count']).sort_index()
-		df['Pos'] = df.index
-		df = df[df.Count != 0]
-		df['ORF'] = gene
-		df['CDS_length'] = gene_dict[gene]
-		dist_out.append(df)
-	pd.concat(dist_out).to_csv(dist_uncompressed,sep='\t',mode='a',index=False)
-	if dist_gzip_flag:
-		with open(dist_uncompressed,'rb') as src, gzip.open(dist_compressed,'wb') as dst:
-			dst.writelines(src)
-		os.remove(dist_uncompressed)
+	if args.out_dist:
+		dist_out = []
+		for gene in dist:
+			df = pd.DataFrame.from_dict(dist[gene]['Count'],orient='index',columns=['Count']).sort_index()
+			df['Pos'] = df.index
+			df = df[df.Count != 0]
+			df['ORF'] = gene
+			df['CDS_length'] = gene_dict[gene]
+			dist_out.append(df)
+		pd.concat(dist_out).to_csv(dist_uncompressed,sep='\t',mode='a',index=False)
+		if dist_gzip_flag:
+			with open(dist_uncompressed,'rb') as src, gzip.open(dist_compressed,'wb') as dst:
+				dst.writelines(src)
+			os.remove(dist_uncompressed)
 	
 	counts_out = []
 	for gene in dist:
