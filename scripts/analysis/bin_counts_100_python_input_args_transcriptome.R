@@ -2,8 +2,8 @@ library(tidyverse)
 args <- commandArgs(trailingOnly = TRUE)
 file <- args[1]
 working.dir <- dirname(file)
-name <- str_extract(file,pattern=paste0("(?<=",args[2],").*(?=",args[3],")"))
-print(paste0("Analyzing: ",name))
+name <- args[2]
+print(paste0("Analyzing: ",file,"\n Exporting to: ",name,"_bin100.tsv.gz"))
 # python numbers are 0-indexed, assuming the transcriptome came with 250nt UTR
 d_raw <- read_tsv(file,comment="#",show_col_types = F) %>%
   mutate(Pos=Pos-250) %>%
@@ -59,4 +59,4 @@ print("Writing")
 d_binned_byORF <- d_counts_binned %>%
     group_by(ORF,bin) %>%
         summarise(counts = sum(counts.norm,na.rm=T)) %>%
-    write_tsv(paste0(working.dir,"/",args[2],"bin100_",name,".tsv.gz"))
+    write_tsv(paste0(working.dir,"/",name,"_bin100.tsv.gz"))
