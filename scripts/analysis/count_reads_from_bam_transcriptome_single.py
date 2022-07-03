@@ -127,7 +127,7 @@ if __name__=='__main__':
 	counts_out = []
 	for gene in dist:
 		dist_trimmed = [dist[gene]['Count'][pos] for pos in dist[gene]['Count'].keys()
-						if pos < args.trim_front or args >= (gene_dict[gene]-args.trim_back)]
+						if pos < args.trim_front or pos >= (gene_dict[gene]-args.trim_back)]
 		df = pd.DataFrame({'Count':sum(dist_trimmed)},index=[gene])
 		#df['length_trans']=len(dist[gene]['index'])
 		df['CDS_length']=gene_dict[gene]
