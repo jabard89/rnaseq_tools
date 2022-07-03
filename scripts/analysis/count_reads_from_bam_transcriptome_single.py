@@ -4,7 +4,8 @@
 # 06/15/2022
 # Modified version of pile_reads_from_bam_genome_single, but for counting reads mapped with STAR to a transcriptome fasta
 # use for analyzing ribosome profiling data
-# align reads 17 bp from the 5' end of the read
+# align reads froms the start of the read
+# outputted distribution ignores trimming
 # can output either tsv or tsv.gz files
 
 import sys, os, math, random, argparse, csv, warnings, gzip, pathlib, re, itertools
@@ -104,10 +105,7 @@ if __name__=='__main__':
 			read.iv = invert_strand(read.iv)
 		if not read.iv.chrom in dist:
 			continue
-		if read.iv.start < args.trim_front or read.iv.start >= (gene_dict[read.iv.chrom]-args.trim_back):
-			continue
 		# assign the read to the correct position on the gene
-		
 		dist[read.iv.chrom]['Count'][read.iv.start] += 1
 		
 	print("Exporting counts!")
@@ -118,6 +116,7 @@ if __name__=='__main__':
 		df['Pos'] = dist[gene]['index']
 		df = df[df.Count != 0]
 		df['ORF'] = gene
+		df['CDS_length'] = gene_dict[gene]
 		dist_out.append(df)
 	pd.concat(dist_out).to_csv(dist_uncompressed,sep='\t',mode='a',index=False)
 	if dist_gzip_flag:
@@ -127,7 +126,9 @@ if __name__=='__main__':
 	
 	counts_out = []
 	for gene in dist:
-		df = pd.DataFrame({'Count':sum(dist[gene]['Count'].values())},index=[gene])
+		dist_trimmed = [dist[gene]['Count'][pos] for pos in dist[gene]['Count'].keys()
+						if pos < args.trim_front or args >= (gene_dict[gene]-args.trim_back)]
+		df = pd.DataFrame({'Count':sum(dist_trimmed)},index=[gene])
 		#df['length_trans']=len(dist[gene]['index'])
 		df['CDS_length']=gene_dict[gene]
 		df['Eff_length']=dist[gene]['eff_len']
