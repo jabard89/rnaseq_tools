@@ -86,11 +86,12 @@ if __name__=='__main__':
 	gene_dict = {input_fasta[i].name: len(input_fasta[i]) for i in range(len(input_fasta))}
 
 	dist = {}
-	for i,gene in enumerate(gene_names):
-		eff_len = gene_lengths[i] - args.trim_front - args.trim_back
+	for gene in gene_names:
+		CDS_length = gene_dict[gene]
+		eff_len = CDS_length - args.trim_front - args.trim_back
 		if eff_len >= args.min_length:
-			transcript_pos = list(range(0,gene_lengths[i]))
-			dist[gene] = {'index':transcript_pos,'Count':dict.fromkeys(transcript_pos,0),'eff_len':eff_len}
+			transcript_pos = list(range(0,CDS_length))
+			dist[gene] = {'Count':dict.fromkeys(transcript_pos,0),'eff_len':eff_len}
 
 
 	counter = 0
@@ -112,8 +113,8 @@ if __name__=='__main__':
 	# reformat distribution counts
 	dist_out = []
 	for gene in dist:
-		df = pd.DataFrame.from_dict(dist[gene]['Count'],orient='index',columns=['Count'])
-		df['Pos'] = dist[gene]['index']
+		df = pd.DataFrame.from_dict(dist[gene]['Count'],orient='index',columns=['Count']).sort_index()
+		df['Pos'] = df.index
 		df = df[df.Count != 0]
 		df['ORF'] = gene
 		df['CDS_length'] = gene_dict[gene]
