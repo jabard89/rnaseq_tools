@@ -28,12 +28,12 @@ if __name__=='__main__':
 	parser.add_argument("-b","--trim_back",dest="trim_back",default=30,type=int,help="nt to trim from back")
 	parser.add_argument("-m","--min_length",dest="min_length",default=100,type=int,help="minimum remaining nt")
 	# Optional arguments
-# 	args = parser.parse_args()
-	args = parser.parse_args(["/beagle3/dadrummond/jbard/riboseq_comp/snake/index/yeast_CDS_w_250utrs.fa",
-							"/beagle3/dadrummond/jbard/riboseq_comp/snake/mapped_reads/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2_transcriptome_Aligned.out.bam",
-							"/beagle3/dadrummond/jbard/riboseq_comp/snake/counts/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2/test_dist.tsv.gz",
-							"/beagle3/dadrummond/jbard/riboseq_comp/snake/counts/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2/test_counts_-30nt_0nt.tsv",
-							"-f 220","-b 250"])
+	args = parser.parse_args()
+	# args = parser.parse_args(["/beagle3/dadrummond/jbard/riboseq_comp/snake/index/yeast_CDS_w_250utrs.fa",
+	# 						"/beagle3/dadrummond/jbard/riboseq_comp/snake/mapped_reads/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2_transcriptome_Aligned.out.bam",
+	# 						"/beagle3/dadrummond/jbard/riboseq_comp/snake/counts/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2/test_dist.tsv.gz",
+	# 						"/beagle3/dadrummond/jbard/riboseq_comp/snake/counts/Triandafillou.2017_ribo_42C.20min_BY4743_ribozero_BR2/test_counts_-30nt_0nt.tsv",
+	# 						"-f 220","-b 250"])
 
 	# Read input
 	if not os.path.isfile(args.in_fasta):
