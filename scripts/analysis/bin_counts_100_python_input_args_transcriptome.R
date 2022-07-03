@@ -9,13 +9,9 @@ d_raw <- read_tsv(file,comment="#") %>%
   mutate(Pos=Pos-250) %>%
   mutate(CDS_length = CDS_length-250-250)
 
-counts_per_ORF <- d_raw %>% group_by(ORF) %>%
-    summarise(counts.perORF = sum(Count,na.rm=T),.groups="drop") %>%
-    ungroup()
-
 d_normcounts <- d_raw %>%
   group_by(ORF) %>%
-  mutate(counts.norm = Count/sum(Count,na.rm/T)) %>%
+  mutate(counts.norm = Count/sum(Count,na.rm=T)) %>%
   ungroup %>%
   mutate(start_aligned = Pos) %>%
   select(ORF,start_aligned,counts.norm,CDS_length)
