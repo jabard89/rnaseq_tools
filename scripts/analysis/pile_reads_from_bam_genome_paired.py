@@ -22,10 +22,10 @@ if __name__=='__main__':
 	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
 	# Optional arguments
 	args = parser.parse_args()
-	# args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
-	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/220301/star/HG49/HG49_YFL039C.bam",
-	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/220301/star/HG49/HG49_dist_test.tsv.gz",
-	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/220301/star/HG49/HG49_counts_test.tsv"])
+	#args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
+	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/221019/snake/mapped_reads/JB125/221019_star_JB125_Aligned.dedup.out.bam",
+	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/221019/snake/counts/JB125/221019_star_JB125_dist.tsv.gz",
+	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/221019/snake/counts/JB125/221019_star_JB125_dist_counts_test.tsv"])
 
 	# Read input
 	if not os.path.isfile(args.in_gtf):
@@ -146,7 +146,7 @@ if __name__=='__main__':
 			iv1_start = gene_dict[gene]['5UTR'][0].iv.start_d
 			iv1_end = gene_dict[gene]['5UTR'][0].iv.end_d
 		else:
-			iv1_start = gene_ivs[gene].start_d
+			iv1_start = gene_ivs[gene].start_d # ends up with 50 nt pad from above
 			iv1_end = gene_dict[gene]['gene'][0].iv.start_d
 		if strand == '-':
 			transcript_parts.append(range(iv1_start,iv1_end,-1))
@@ -164,7 +164,7 @@ if __name__=='__main__':
 			iv3_end = gene_dict[gene]['3UTR'][0].iv.end_d
 		else:
 			iv3_start = gene_dict[gene]['gene'][0].iv.end_d
-			iv3_end = gene_ivs[gene].end_d
+			iv3_end = gene_ivs[gene].end_d # ends up with 50 nt pad from above
 		if strand == '-':
 			transcript_parts.append(range(iv3_start,iv3_end,-1))
 		else:
@@ -174,7 +174,9 @@ if __name__=='__main__':
 		CDS_len = sum([len(part) for part in transcript_parts[1:-1]]) #calculate the length of the CDS
 		transcript_index = list(range(0-len(transcript_parts[0]),CDS_len+len(transcript_parts[-1])))
 		region_vector = ['UTR5']*len(transcript_parts[0]) + ['CDS']*CDS_len + ['UTR3']*len(transcript_parts[-1])
-		dist[gene] = {'index':transcript_index,'Count':dict.fromkeys(transcript_pos,0),'region':region_vector,'CDS_len':CDS_len}
+		dist[gene] = {'index':transcript_index,'Count':dict.fromkeys(transcript_pos,0),
+		'region':region_vector,'CDS_len':CDS_len,'UTR5_len':len(transcript_parts[0]),
+		'UTR3_len':len(transcript_parts[-1])}
 		
 	# algorithm partially based on htseq documentation
 	# https://htseq.readthedocs.io/en/master/counting.html?highlight=paired-end#handling-paired-end-reads
@@ -272,7 +274,7 @@ if __name__=='__main__':
 					range_end = max(dist[found_gene]['Count'].keys())
 				else:
 					range_end = min(dist[found_gene]['Count'].keys())
-			if range_start < range_end: # need to make sure the range goes small to large
+			if range_start < range_end: # need to make sure the range goes small to large, regardless of strand
 				count_range = range(range_start,range_end+1) #+1 to account for python ranges not including last number
 			else:
 				count_range = range(range_end,range_start+1)
@@ -292,6 +294,7 @@ if __name__=='__main__':
 		df['Region'] = dist[gene]['region']
 		df = df[df.Count != 0]
 		df['ORF'] = gene
+		df['CDS_length']=dist[gene]['CDS_len']
 		dist_out.append(df)
 	pd.concat(dist_out).to_csv(dist_uncompressed,sep='\t',mode='a',index=False)
 	if dist_gzip_flag:
