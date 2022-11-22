@@ -4,6 +4,7 @@
 # 03/03/2022
 # Modified 04/05/2022 to pile up reads rather than count starts and to export TPMS from the non-intron reads
 # can output either tsv or tsv.gz files
+# Modified on 11/06/2022 to allow for set boundaries for matching (instead of using annotated 5' and 3' UTRs)
 
 import sys, os, math, random, argparse, csv, warnings, gzip, pathlib, re, itertools
 from datetime import datetime
@@ -20,6 +21,7 @@ if __name__=='__main__':
 	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None, help="input bam file")
 	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
+	parser.add_argument(dest="window",default=250,help="how many bp to uase as window outside CDS")
 	# Optional arguments
 	args = parser.parse_args()
 	#args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
@@ -98,19 +100,19 @@ if __name__=='__main__':
 		gene_dict.pop(gene)
 		gene_ivs.pop(gene)
 
-	#extract the total interval for each gene, including 3' and 5' with a cushion
-	pad = 50
+	#extract the total interval for each gene, including 3' and 5' with a defined cushion
+	pad = args.window
 	for gene in gene_dict:
 		tempStart = gene_dict[gene]['gene'][0].iv.start
 		tempEnd = gene_dict[gene]['gene'][0].iv.end
 		tempStrand = gene_dict[gene]['gene'][0].iv.strand
 		tempChrom = gene_dict[gene]['gene'][0].iv.chrom
-		for type in gene_dict[gene]:
-			for item in gene_dict[gene][type]:
-				if item.iv.start < tempStart:
-					tempStart = item.iv.start
-				if item.iv.end > tempEnd:
-					tempEnd = item.iv.end
+		#for type in gene_dict[gene]:
+		#	for item in gene_dict[gene][type]:
+		#		if item.iv.start < tempStart:
+		#			tempStart = item.iv.start
+		#		if item.iv.end > tempEnd:
+		#			tempEnd = item.iv.end
 		if tempStart >= pad: #make sure the padding doesn't go negative
 			tempStart = tempStart-pad			
 		gene_ivs[gene] = HTSeq.GenomicInterval(tempChrom,tempStart,tempEnd+pad,tempStrand)
@@ -139,15 +141,17 @@ if __name__=='__main__':
 		for iv in intron_ivs:
 			gene_array_dict[gene][iv] += 'intron'
 		
-		#make the distribution dictionary by assembling all UTRs and CDS into one mapping
+		#make the distribution dictionary by assembling all the CDS into one mapping + padding
 		strand = gene_dict[gene]['gene'][0].iv.strand
 		transcript_parts = [] # parts of the transcript, 0=5UTR,1-n=CDS,n+1=3UTR
-		if len(gene_dict[gene]['5UTR']) == 1:
-			iv1_start = gene_dict[gene]['5UTR'][0].iv.start_d
-			iv1_end = gene_dict[gene]['5UTR'][0].iv.end_d
-		else:
-			iv1_start = gene_ivs[gene].start_d # ends up with 50 nt pad from above
-			iv1_end = gene_dict[gene]['gene'][0].iv.start_d
+		#if len(gene_dict[gene]['5UTR']) == 1:
+		#	iv1_start = gene_dict[gene]['5UTR'][0].iv.start_d
+		#	iv1_end = gene_dict[gene]['5UTR'][0].iv.end_d
+		#else:
+		#	iv1_start = gene_ivs[gene].start_d # ends up with 50 nt pad from above
+		#	iv1_end = gene_dict[gene]['gene'][0].iv.start_d
+		iv1_start = gene_ivs[gene].start_d # starts with pad from above
+		iv1_end = gene_dict[gene]['gene'][0].iv.start_d
 		if strand == '-':
 			transcript_parts.append(range(iv1_start,iv1_end,-1))
 		else:
@@ -159,12 +163,14 @@ if __name__=='__main__':
 			else:
 				transcript_parts.append(range(CDS.iv.start_d,CDS.iv.end_d))
 		
-		if len(gene_dict[gene]['3UTR']) == 1:
-			iv3_start = gene_dict[gene]['3UTR'][0].iv.start_d
-			iv3_end = gene_dict[gene]['3UTR'][0].iv.end_d
-		else:
-			iv3_start = gene_dict[gene]['gene'][0].iv.end_d
-			iv3_end = gene_ivs[gene].end_d # ends up with 50 nt pad from above
+		#if len(gene_dict[gene]['3UTR']) == 1:
+		#	iv3_start = gene_dict[gene]['3UTR'][0].iv.start_d
+		#	iv3_end = gene_dict[gene]['3UTR'][0].iv.end_d
+		#else:
+		#	iv3_start = gene_dict[gene]['gene'][0].iv.end_d
+		#	iv3_end = gene_ivs[gene].end_d # ends up with 50 nt pad from above
+		iv3_start = gene_dict[gene]['gene'][0].iv.end_d
+		iv3_end = gene_ivs[gene].end_d # ends up with pad from above
 		if strand == '-':
 			transcript_parts.append(range(iv3_start,iv3_end,-1))
 		else:

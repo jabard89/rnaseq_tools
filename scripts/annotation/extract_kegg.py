@@ -19,7 +19,7 @@ def retrieve_brite_dict(brite_id):
 	print('Retreived ' + entry['name'])
 	return(entry)
 
-t = retrieve_brite_dict("hsa03012")
+#ribi = retrieve_brite_dict("sce03009")
 	
 def get_all_levels(entry):
 	# returns a level_dict where each entry contains the nested dictionary below that level
@@ -36,7 +36,7 @@ def get_all_levels(entry):
 	find_levels(entry)
 	return categories
 
-t_flat = get_all_levels(t)
+#ribi_dict = get_all_levels(ribi)
 
 def get_all_genes(entry):
 	# given a dictionary (any item in the dictionary returned by get_all_levels)
@@ -48,15 +48,15 @@ def get_all_genes(entry):
 	def extract_entries(l):
 		for c in l['children']:
 			if 'children' in c.keys():
-					extract_entries(c)
+				extract_entries(c)
 			else:
 				temp = c['name']
 				split = temp.split('\t')
-				gene = split[0].split()[0]
-				ko = split[1].split()[0]
-				out_tuples.append((gene,ko))
+				if len(split)>1:
+					gene = split[0].split()[0]
+					ko = split[1].split()[0]
+					out_tuples.append((gene,ko))
 	extract_entries(entry)
 	return pd.DataFrame(out_tuples,columns=['ORF','KO'])
-
-hsa_eIF1 = get_all_genes(t_flat['hsa03012.Eukaryotic type.Initiation factors.eIF-1'])
-b = get_all_genes(a['sce03012.Eukaryotic type.Initiation factors.eIF-1'])
+ribi_brite_list = get_all_genes(a)
+#ribi_euk = get_all_genes(ribi_dict['sce03009.Eukaryotic type'])
