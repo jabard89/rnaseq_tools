@@ -23,11 +23,11 @@ if __name__=='__main__':
 	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
 	# Optional arguments
-	args = parser.parse_args()
-	#args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/rnaseq_tools/src/annotations/Scerevisiae.R64-1-1.104.yeastss.pelechano.gtf",
-	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/221019/snake/mapped_reads/JB125/221019_star_JB125_Aligned.dedup.out.bam",
-	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/221019/snake/counts/JB125/221019_star_JB125_dist.tsv.gz",
-	# 						"/home/jabard89/Dropbox/Data_JB/RNA-seq/JB/221019/snake/counts/JB125/221019_star_JB125_dist_counts_test.tsv"])
+	#args = parser.parse_args()
+	args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/annotation/Scerevisiae.R64-1-1.105.pelechano_merged_S_pombe.gtf",
+	 						"/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/mapping/211216/big/211216_snake_221122_JB030_head.bam",
+	 						"/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/mapping/211216/big/test_dist.tsv.gz",
+	 						"/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/mapping/211216/big/test_counts.tsv"])
 
 	# Read input
 	if not os.path.isfile(args.in_gtf):
