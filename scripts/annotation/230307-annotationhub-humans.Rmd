@@ -1,0 +1,28 @@
+```{r}
+library(tidyverse)
+#BiocManager::install("AnnotationHub","ensembldb")
+library(AnnotationHub)
+library(ensembldb)
+```
+
+```{r}
+ah <- AnnotationHub::AnnotationHub()
+#ahDb <- AnnotationHub::query(ah,
+#                             pattern = c("Homo sapiens","EnsDb","107"))
+ahDb <- AnnotationHub::query(ah,pattern=c("Homo sapiens","KEGG"))
+d <- display(ahDb)
+ahEdb <- ahDb[["AH60904"]]
+  tx <- ensembldb::transcripts(ahEdb,return.type="DataFrame") %>%
+  as_tibble
+tx2gene <- tx %>% dplyr::select(tx_id_version,gene_id) %>%
+  dplyr::rename("TXNAME"="tx_id_version","GENEID"="gene_id")
+write_csv(tx2gene,"output/EnsDb.Saccharomyces-cerevisiae.v107_tx2gene.csv")
+gene_keys <- ensembldb::keys(ahEdb, keytype = "GENEID")
+geneid2name <- ensembldb::select(ahEdb,gene_keys,columns=c("GENEID","GENENAME","TXBIOTYPE"))
+write_csv(geneid2name,"output/EnsDb.Saccharomyces-cerevisiae.v107_geneid2name.csv")
+```
+
+```{r}
+
+```
+

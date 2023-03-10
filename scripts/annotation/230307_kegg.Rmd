@@ -1,0 +1,11 @@
+```{r}
+library(tidyverse)
+source("pull_kegg_brite_list.R")
+```
+
+```{r}
+folding_brite <- "hsa03110"
+folding_list <- retrieveBRITE(folding_brite,"hsa")
+```
+
+
