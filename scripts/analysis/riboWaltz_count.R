@@ -4,7 +4,7 @@
 library(tidyverse)
 
 
-args <- commandArgs(trailingOnly = TRUE) # input sample name
+args <- commandArgs(trailingOnly = TRUE) # input sample name, folder with bam, and the name of the bam file
 sample <- args[1]
 d_sample <- tibble("Sample"=sample) %>%
   separate(Sample,into=c("Paper","Type","Condition","Strain","Depletion","Biorep"),
@@ -18,8 +18,8 @@ d_lengths <- read_tsv("~/repos/rnaseq_tools/src/annotations/200325-scer-features
 annot_dt <- data.table::data.table(transcript=d_lengths$ORF,l_tr=d_lengths$length.nt+500,
                                    l_utr5=250,l_cds=d_lengths$length.nt,l_utr3=250)
 
-bam_file <- paste0(sample,"_transcriptome_Aligned.sortedByCoord.out")
-sample_folder <- paste0(src.dir,"/mapped_reads/",sample)
+sample_folder <- args[2]
+bam_file <- args[3]
 names(sample) <- bam_file
 
 temp_list <- riboWaltz::bamtolist(bamfolder = sample_folder,
