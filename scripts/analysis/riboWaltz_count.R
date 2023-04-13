@@ -1,11 +1,27 @@
 # Run riboWaltz
 # Jared Bard
 # 07/12/2022
+# Updated on 4/13/2023 to use optparse and with a few more options built in
 library(tidyverse)
+library(optparse)
 
+option_list <- list(
+  make_option(c("-s","--sample"),type="character",default=NULL,
+              help="Sample name"),
+  make_option(c("-b","--bam"),type="character",default=NULL,
+              help="Bam file"),
+  make_option(c("-bf","--bamfolder"),type="character",default=NULL,
+              help="Folder with bam file"),
+              make_option(c("-f","-features"),type="character",default="NULL",
+                help="gene feature tsv"),
+              make_option(c("-u","--upstream"),type="integer",default=250,
+                help="how much padding is upstream of the CDS"),
+              make_option(c("-d","--downstream"),type="integer",default=250,
+                help="how much padding is downstream of the CDS")
+)
+opt <- parse_args(OptionParser(option_list=option_list))
 
-args <- commandArgs(trailingOnly = TRUE) # input sample name, folder with bam, and the name of the bam file
-sample <- args[1]
+sample <- opt$sample
 d_sample <- tibble("Sample"=sample) %>%
   separate(Sample,into=c("Paper","Type","Condition","Strain","Depletion","Biorep"),
            sep="_",remove=F)
@@ -13,13 +29,13 @@ stopifnot(d_sample$Type[1]=="ribo")
 
 src.dir <- getwd()
 
-d_lengths <- read_tsv("~/repos/rnaseq_tools/src/annotations/200325-scer-features.txt",
-                      comment="#") %>% filter(classification=="Verified")
-annot_dt <- data.table::data.table(transcript=d_lengths$ORF,l_tr=d_lengths$length.nt+500,
-                                   l_utr5=250,l_cds=d_lengths$length.nt,l_utr3=250)
+d_lengths <- read_tsv(opt$features,comment="#") %>% filter(classification=="Verified")
+annot_dt <- data.table::data.table(transcript=d_lengths$ORF,
+                                    l_tr=d_lengths$length.nt+opt$upstream+opt$downstream,
+                                    l_utr5=opt$upstream,l_cds=d_lengths$length.nt,l_utr3=opt$downstream)
 
-sample_folder <- args[2]
-bam_file <- args[3]
+sample_folder <- opt$bamfolder
+bam_file <- opt$bam
 names(sample) <- bam_file
 
 temp_list <- riboWaltz::bamtolist(bamfolder = sample_folder,
