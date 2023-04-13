@@ -5,21 +5,21 @@
 library(tidyverse)
 
 
-args <- commandArgs(trailingOnly = TRUE) # psite file, length of UTR padding, and output files
+args <- commandArgs(trailingOnly = TRUE) # psite file, length of 5'UTR padding, and output files
 sample <- args[1]
 psite_file <- args[2]
-utr_length <- as.integer(args[3])
+utr5_length <- as.integer(args[3])
 out_all_file <- args[4]
 out_inframe_file <- args[5]
 
 df_input <- read_tsv(psite_file) %>%
   mutate(psite=psite-1) %>% # make it 0-based
-  mutate(in_frame = if_else(psite<utr_length|
-                              (psite-utr_length)%%3==0,TRUE,FALSE))
+  mutate(in_frame = if_else(psite<utr5_length|
+                              (psite-utr5_length)%%3==0,TRUE,FALSE))
 
 writeLines(c(paste0("# P-site footprints for all reads"),
              paste0("# Generated ",Sys.time()," by riboWaltz_psite_to_bedgraph"),
-             paste0("# Input = ",psite_file,", UTR_padding=",utr_length),
+             paste0("# Input = ",psite_file,", UTR5_padding=",utr5_length),
              paste0("track type=bedGraph name=all.",sample," ",
                     "graphType=bar visibility=full autoScale=on")),
            sep="\n",
@@ -33,7 +33,7 @@ out_all <- df_input %>%
 
 writeLines(c(paste0("# P-site footprints just for in-frame reads"),
              paste0("# Generated ",Sys.time()," by riboWaltz_psite_to_bedgraph"),
-             paste0("# Input = ",psite_file,", UTR_padding=",utr_length),
+             paste0("# Input = ",psite_file,", UTR5_padding=",utr5_length),
              paste0("track type=bedGraph name=inframe.",sample," ",
                     "graphType=bar visibility=full autoScale=on")),
            sep="\n",

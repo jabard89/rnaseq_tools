@@ -6,19 +6,25 @@ library(tidyverse)
 library(optparse)
 
 option_list <- list(
-  make_option(c("-s","--sample"),type="character",default=NULL,
-              help="Sample name"),
-  make_option(c("-b","--bam"),type="character",default=NULL,
-              help="Bam file"),
-  make_option(c("-bf","--bamfolder"),type="character",default=NULL,
-              help="Folder with bam file"),
-              make_option(c("-f","-features"),type="character",default="NULL",
-                help="gene feature tsv"),
-              make_option(c("-u","--upstream"),type="integer",default=250,
-                help="how much padding is upstream of the CDS"),
-              make_option(c("-d","--downstream"),type="integer",default=250,
-                help="how much padding is downstream of the CDS")
+	make_option(c("-s","--sample"),type="character",default=NULL,
+		help="Sample name"),
+	make_option(c("-b","--bam"),type="character",default=NULL,
+		help="Bam file"),
+	make_option(c("-f","--bamfolder"),type="character",default=NULL,
+		help="Folder with bam file"),
+	make_option(c("-g","--genefeatures"),type="character",default=NULL,
+		help="gene feature tsv"),
+	make_option(c("-u","--upstream"),type="integer",default=250,
+		help="how much padding is upstream of the CDS"),
+	make_option(c("-d","--downstream"),type="integer",default=250,
+		help="how much padding is downstream of the CDS")
 )
+# test_args <- c("--sample=Schuller.2017_ribo_30C.control_BY4741_ribozero_BR1",
+#                "--bamfolder=map_mRNA/Schuller.2017_ribo_30C.control_BY4741_ribozero_BR1/",
+#                "--bam=Schuller.2017_ribo_30C.control_BY4741_ribozero_BR1_mRNA.sortedByCoord",
+#                "--genefeatures=scripts/200325-scer-features.txt",
+#                "--upstream=600",
+#                "--downstream=30")
 opt <- parse_args(OptionParser(option_list=option_list))
 
 sample <- opt$sample
@@ -29,7 +35,7 @@ stopifnot(d_sample$Type[1]=="ribo")
 
 src.dir <- getwd()
 
-d_lengths <- read_tsv(opt$features,comment="#") %>% filter(classification=="Verified")
+d_lengths <- read_tsv(opt$genefeatures,comment="#") %>% filter(classification=="Verified")
 annot_dt <- data.table::data.table(transcript=d_lengths$ORF,
                                     l_tr=d_lengths$length.nt+opt$upstream+opt$downstream,
                                     l_utr5=opt$upstream,l_cds=d_lengths$length.nt,l_utr3=opt$downstream)
@@ -42,16 +48,21 @@ temp_list <- riboWaltz::bamtolist(bamfolder = sample_folder,
                                   annotation=annot_dt,
                                   transcript_align=TRUE,
                                   name_samples=sample)
-
+# need to shorten heatmap if I haven't mapped out that far
+if (opt$downstream < 50) {
+  heat_utr3l = opt$downstream
+} else {
+  heat_utr3l = 50
+}
 heatmap <- riboWaltz::rends_heat(temp_list,annot_dt,
-                                 "sample"=sample)
+                                 sample=opt$sample,utr3l=heat_utr3l)
 pdf(paste0(src.dir,"/riboWaltz/ribogrid/",sample,"_ribogrid.pdf"))
 heatmap[["plot"]]+labs(title=sample)+
   theme(plot.title=element_text(size=12))+
   scale_fill_viridis_c()
 dev.off()
 
-offset <- riboWaltz::psite(temp_list)
+offset <- riboWaltz::psite(temp_list,extremity="5end")
 offset_file <- paste0(src.dir,"/riboWaltz/offset/",sample,"_offset.tsv")
 writeLines(c(paste0("# P site offsets"),
              paste0("# Generated ",Sys.time()," by Jared Bard"),
