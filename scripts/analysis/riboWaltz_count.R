@@ -48,6 +48,7 @@ temp_list <- riboWaltz::bamtolist(bamfolder = sample_folder,
                                   annotation=annot_dt,
                                   transcript_align=TRUE,
                                   name_samples=sample)
+
 # need to shorten heatmap if I haven't mapped out that far
 if (opt$downstream < 50) {
   heat_utr3l = opt$downstream
@@ -62,7 +63,11 @@ heatmap[["plot"]]+labs(title=sample)+
   scale_fill_viridis_c()
 dev.off()
 
-offset <- riboWaltz::psite(temp_list,extremity="5end")
+filt_list <- riboWaltz::length_filter(data = temp_list,
+ 				length_filter_mode = "periodicity",
+ 				periodicity_threshold = 70)
+rm(temp_list)
+offset <- riboWaltz::psite(filt_list,extremity="5end")
 offset_file <- paste0(src.dir,"/riboWaltz/offset/",sample,"_offset.tsv")
 writeLines(c(paste0("# P site offsets"),
              paste0("# Generated ",Sys.time()," by Jared Bard"),
@@ -73,8 +78,8 @@ writeLines(c(paste0("# P site offsets"),
            con=offset_file)
 offset %>% as_tibble %>% write_tsv(offset_file,append=TRUE,col_names=TRUE)
 
-psite_updated <- riboWaltz::psite_info(temp_list,offset)
-rm(temp_list)
+psite_updated <- riboWaltz::psite_info(filt_list,offset)
+rm(filt_list)
 data.table::fwrite(psite_updated[[1]],
                    file=paste0(src.dir,"/riboWaltz/psites/",sample,"_psites.tsv.gz"),
                    sep="\t",row.names=FALSE,col.names=TRUE,compress="auto")
