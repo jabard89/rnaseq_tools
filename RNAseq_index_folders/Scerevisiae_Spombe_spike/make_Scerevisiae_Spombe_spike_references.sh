@@ -19,9 +19,11 @@ gzip -dfc $DIR/Schizosaccharomyces_pombe_cds.fa.gz > $DIR/Schizosaccharomyces_po
 bash relabel_chroms_gff3.sh $DIR/Schizosaccharomyces_pombe_all_chromosomes.gff3 > $DIR/Schizosaccharomyces_pombe_all_chromosomes_relabelled.gff3
 bash relabel_fasta_pombe.sh $DIR/Schizosaccharomyces_pombe_all_chromosomes.fa > $DIR/Schizosaccharomyces_pombe_all_chromosomes_relabelled.fa
 bash split_SGD_gff3.sh
+python gffutils_add_geneid.py $DIR/Schizosaccharomyces_pombe_all_chromosomes_relabelled.gff3  $DIR/Schizosaccharomyces_pombe_all_chromosomes_relabelled_geneid.gff3
+python gffutils_add_geneid.py $DIR/saccharomyces_cerevisiae_R64-3-1_20210421_nofasta.gff  $DIR/saccharomyces_cerevisiae_R64-3-1_20210421_nofasta_geneid.gff
 
-cat $DIR/spike.gff $DIR/saccharomyces_cerevisiae_R64-3-1_20210421_nofasta.gff $DIR/Schizosaccharomyces_pombe_all_chromosomes_relabelled.gff3 > \
-$DIR/spike_saccharomyces_cerevisiae_R64-3-1_20210421_Schizosaccharomyces_pombe_all_chromosomes_relabelled.gff3
+cat $DIR/spike.gff $DIR/saccharomyces_cerevisiae_R64-3-1_20210421_nofasta_geneid.gff $DIR/Schizosaccharomyces_pombe_all_chromosomes_relabelled_geneid.gff3 > \
+$DIR/spike_saccharomyces_cerevisiae_R64-3-1_20210421_Schizosaccharomyces_pombe_all_chromosomes_relabelled_geneid.gff3
 cat $DIR/spike.fasta $DIR/saccharomyces_cerevisiae_R64-3-1_20210421_allchrom.fasta $DIR/Schizosaccharomyces_pombe_all_chromosomes_relabelled.fa > \
 $DIR/spike_saccharomyces_cerevisiae_R64-3-1_20210421_Schizosaccharomyces_pombe_all_chromosomes_relabelled.fasta
 cat $DIR/spike.fasta $DIR/orf_coding_all_R64-3-1_20210421.fasta $DIR/rna_coding_R64-3-1_20210421.fasta $DIR/Schizosaccharomyces_pombe_cds.fa > \
