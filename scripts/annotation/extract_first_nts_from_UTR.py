@@ -42,7 +42,7 @@ def gff_todict(gff_filename):
 
             # now add the gene to the gene dictionary
             gene_dict[feature.name] = { 'gene_id':gene_id,'feature':feature,
-                                        'transcripts':[],'5UTR':[],'3UTR':[],
+                                        'transcripts':[],'five_prime_UTR':[],'three_prime_UTR':[],
                                         'exons':[],'CDSs':[] }
 
     # scan again for mRNAs associated with each gene
@@ -65,7 +65,7 @@ def gff_todict(gff_filename):
         return(parent_gene)
 
     for feature in gff_file:
-        if feature.type not in ['exon','CDS','5UTR','3UTR']:
+        if feature.type not in ['exon','CDS','five_prime_UTR','three_prime_UTR']:
             continue
         if not find_parent(feature):
             continue
@@ -74,10 +74,10 @@ def gff_todict(gff_filename):
             gene_dict[parent_gene]['exons'].append(feature)
         elif feature.type == 'CDS':
             gene_dict[parent_gene]['CDSs'].append(feature)
-        elif feature.type == '5UTR':
-            gene_dict[parent_gene]['5UTR'].append(feature)
-        elif feature.type == '3UTR':
-            gene_dict[parent_gene]['3UTR'].append(feature)
+        elif feature.type == 'five_prime_UTR':
+            gene_dict[parent_gene]['five_prime_UTR'].append(feature)
+        elif feature.type == 'three_prime_UTR':
+            gene_dict[parent_gene]['three_prime_UTR'].append(feature)
 
     # output a dictionary but with gene_id as keys
     out_dict = {}
@@ -85,8 +85,8 @@ def gff_todict(gff_filename):
         out_dict[gene_dict[gene]['gene_id']] = {
             'feature':gene_dict[gene]['feature'],
             'transcripts':gene_dict[gene]['transcripts'],
-            '5UTR':gene_dict[gene]['5UTR'],
-            '3UTR':gene_dict[gene]['3UTR'],
+            'five_prime_UTR':gene_dict[gene]['five_prime_UTR'],
+            'three_prime_UTR':gene_dict[gene]['three_prime_UTR'],
             'exons':gene_dict[gene]['exons'],
             'CDSs':gene_dict[gene]['CDSs']
         }
@@ -131,8 +131,8 @@ if __name__=='__main__':
 
     out_dict = { }
     for gene in gff_dict:
-        if gff_dict[gene]['5UTR']:
-            UTR5_iv = gff_dict[gene]['5UTR'][0].iv
+        if gff_dict[gene]['five_prime_UTR']:
+            UTR5_iv = gff_dict[gene]['five_prime_UTR'][0].iv
             temp_iv = UTR5_iv.copy()
             temp_iv.length = args.x
             out_dict[gene] = {"ORF":gene,
