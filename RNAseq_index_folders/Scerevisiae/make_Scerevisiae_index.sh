@@ -19,6 +19,9 @@ rm -f $DIR/rna_coding_R64-3-1_20210421.fasta
 rm -f $DIR/saccharomyces_cerevisiae_R64-3-1_20210421_nofasta.gff
 rm -f $DIR/saccharomyces_cerevisiae_R64-3-1_20210421.gff
 
+# filter out bad lines from gff file
+awk -F'\t' '($7 != "0") || /^#/' saccharomyces_cerevisiae_R64-3-1_20210421_nofasta_geneid.gff > saccharomyces_cerevisiae_R64-3-1_20210421_nofasta_geneid_filtered.gff
+
 
 
 

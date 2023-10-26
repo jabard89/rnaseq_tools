@@ -5,6 +5,8 @@
 # Modified 04/05/2022 to pile up reads rather than count starts and to export TPMS from the non-intron reads
 # can output either tsv or tsv.gz files
 # Modified on 11/06/2022 to allow for set boundaries for matching (instead of using annotated 5' and 3' UTRs)
+# On 8/30/2023 modified to use gene_id, assuming that input gtf or gff files have been processed by gffutils_add_geneid.py
+# which adds gene_id to all children features
 
 import sys, os, math, random, argparse, csv, warnings, gzip, pathlib, re, itertools
 from datetime import datetime
@@ -16,18 +18,18 @@ import HTSeq
 if __name__=='__main__':
 	parser = argparse.ArgumentParser(description="Generic script template")
 	# Required arguments
-	parser.add_argument('-i','--invert_strands',action="store_true",help="invert the strands when looking for matches")
+	parser.add_argument('-f','--forward_strand',default=2,type=int,help="which strand contains the forward reads (1 or 2)")
 	parser.add_argument('-w','--window',default=250,help="how many bp to uase as window outside CDS")
 	parser.add_argument(dest="in_gtf",type=pathlib.Path,default=None,help="input gtf file")
 	parser.add_argument(dest="in_bam", type=pathlib.Path,default=None, help="input bam file")
 	parser.add_argument(dest="out_dist",type=pathlib.Path,default=None,help="name of the gene distribution output tsv")
 	parser.add_argument(dest="out_counts",type=pathlib.Path,default=None,help="name of the gene count output tsv")
 	# Optional arguments
-	#args = parser.parse_args()
-	args = parser.parse_args(["/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/annotation/Scerevisiae.R64-1-1.105.pelechano_merged_S_pombe.gtf",
-	 						"/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/mapping/211216/big/211216_snake_221122_JB030_head.bam",
-	 						"/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/mapping/211216/big/test_dist.tsv.gz",
-	 						"/home/jabard89/Dropbox/code_JB/repos/HeatShockQmRNA/JB_analysis/mapping/211216/big/test_counts.tsv"])
+	args = parser.parse_args()
+	# args = parser.parse_args(["/Users/jbard/Dropbox (Drummond Lab)/code_JB/repos/rnaseq_tools/RNAseq_index_folders/Scerevisiae/saccharomyces_cerevisiae_R64-3-1_20210421_nofasta_geneid_filtered.gff",
+	#  						"/Users/jbard/dropbox_drummond/Data_JB/RNA-seq/JB/221019/HG136//Users/jbard/dropbox_drummond/Data_JB/RNA-seq/JB/221019/HG136/JB221_Aligned_Sorted.out.SortedByName_head.bam",
+	#  						"/Users/jbard/dropbox_drummond/Data_JB/RNA-seq/JB/221019/HG136/JB221_test_dist.tsv.gz",
+	#  						"/Users/jbard/dropbox_drummond/Data_JB/RNA-seq/JB/221019/HG136/JB221_test_counts.tsv"])
 
 	# Read input
 	if not os.path.isfile(args.in_gtf):
@@ -71,7 +73,6 @@ if __name__=='__main__':
 			f.write("#\t{k}: {v}\n".format(k=k,v=v))	
 
 	gtf = HTSeq.GFF_Reader(str(args.in_gtf))
-	bam = HTSeq.BAM_Reader(str(args.in_bam))
 	
 	# make a dictionary of genes with intervals that include the 5' and 3' UTRs
 	print("Making Databases for {} using {}".format(args.in_bam,args.in_gtf))
@@ -82,7 +83,10 @@ if __name__=='__main__':
 		if feature.type == "gene":
 			name = feature.attr['gene_id']
 		elif feature.type in ['CDS','5UTR','3UTR']:
-			name = feature.attr['protein_id']
+			if 'gene_id' not in feature.attr:
+				print("Skipping feature without gene_id attribute: ", feature.name)
+				continue
+			name = feature.attr['gene_id']
 		else:
 			continue
 		if name not in gene_dict:
@@ -199,24 +203,31 @@ if __name__=='__main__':
 		return iv2
 
 	counter = 0
+	unmatched_counter = 0
 	warn_sort_flag = False
 	print("Counting reads:")
 	# read 1 is from the opposite strand!!!
+	bam = HTSeq.BAM_Reader(str(args.in_bam))
 	for bundle in HTSeq.pair_SAM_alignments( bam, bundle=True ):
 		counter += 1
 		if counter % 100000 == 0:
 			print(counter)
 		if len(bundle) != 1:
 			continue  # Skip multiple alignments
-		second_almnt, first_almnt = bundle[0]  # extract pair, NEBnext puts directional strand on the second read
+		if args.forward_strand==1: # extract pair
+			first_almnt, second_almnt = bundle[0]  
+		elif args.forward_strand==2: # NEBnext puts directional strand on the second read
+			second_almnt, first_almnt = bundle[0]
+		else:
+			raise ValueError("forward_strand must be 1 or 2")
 		if not first_almnt or not second_almnt:
+			unmatched_counter += 1
 			warn_sort_flag = True
 			continue
 		if not first_almnt.aligned or not second_almnt.aligned:
 			continue
-		if args.invert_strands:
-			first_almnt.iv = invert_strand(first_almnt.iv)
-			second_almnt.iv = invert_strand(second_almnt.iv)
+		if first_almnt.iv.chrom != second_almnt.iv.chrom:
+			continue
 		iset = set() # find the gene that is common to both reads
 		for iv, step_set in gene_array[first_almnt.iv].steps():
 			if len(step_set) == 0:
@@ -250,8 +261,6 @@ if __name__=='__main__':
 						continue
 					else:
 						continue
-				if args.invert_strands:
-					cigop.ref_iv = invert_strand(cigop.ref_iv)
 				for iv, val in gene_array_dict[found_gene][cigop.ref_iv].steps():
 					feature_set |= val
 		if 'intron' in feature_set and len(feature_set) == 1:
@@ -287,7 +296,7 @@ if __name__=='__main__':
 			for pos in count_range:
 				if pos in dist[found_gene]['Count']:
 					dist[found_gene]['Count'][pos] += 1
-	
+	print("reads with no mates: {}".format(unmatched_counter))
 	if warn_sort_flag:
 		warnings.warn("Missing read mates, please make sure the input bam is sorted by name not coordinate")
 	
